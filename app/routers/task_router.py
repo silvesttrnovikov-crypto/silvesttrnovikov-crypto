@@ -44,13 +44,9 @@ def delete_task(task_id: int, db: Session = Depends(get_db), current_user: model
     db.commit()
     return None
 
-# --- БИЗНЕС-ЛОГИКА: ЖАДНЫЙ АЛГОРИТМ ОПТИМИЗАЦИИ И НАЗНАЧЕНИЯ НАГРУЗКИ ---
 @router.post("/projects/{project_id}/optimize-assignments", status_code=status.HTTP_200_OK)
 def optimize_assignments(project_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
-    """
-    Алгоритмический балансировщик: распределяет нераспределенные задачи проекта.
-    Критерий: Жадно минимизирует суммарное время работы исполнителя и проверяет skill_level.
-    """
+
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Проект не найден")
@@ -87,11 +83,10 @@ def optimize_assignments(project_id: int, db: Session = Depends(get_db), current
                     min_load = user_workload[u.id]
                     best_user_id = u.id
 
-        # Если не нашли идеального по квалификации, берем самого свободного из всех
+        # Если не нашли идеального по квалификации
         if best_user_id is None:
             best_user_id = min(user_workload, key=user_workload.get)
 
-        # Назначаем задачу
         task.assigned_to_id = best_user_id
         user_workload[best_user_id] += task.estimated_hours
         assigned_count += 1
